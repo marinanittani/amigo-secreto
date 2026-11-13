@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sorteador de Amigo Secreto</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: coluna única estreita; duas abas (Organizar / Ver meu resultado). */
+:root {
+  --pine: #14382c;
+  --pine-2: #1d4a3b;
+  --paper: #f6f3ec;
+  --ink: #17231e;
+  --berry: #c8283d;
+  --gold: #e7b84a;
+  --muted: #6b7a72;
+  --line: #d9d4c7;
+  --font-display: "Bricolage Grotesque", "Trebuchet MS", sans-serif;
+  --font-body: "DM Sans", system-ui, sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body { background: var(--pine); color: var(--paper); font-family: var(--font-body); font-size: 16px; line-height: 1.45; }
+.wrap { max-width: 560px; margin: 0 auto; padding: 28px 16px 56px; display: flex; flex-direction: column; gap: 20px; }
+.stack { display: flex; flex-direction: column; gap: 20px; }
+h1 { font-family: var(--font-display); font-weight: 800; font-size: 2.1rem; line-height: 1.05; margin: 0; text-wrap: balance; }
+h1 span { color: var(--gold); }
+h2 { font-family: var(--font-display); font-weight: 600; font-size: 1.15rem; margin: 0 0 12px; }
+.lead { margin: 8px 0 0; color: #c9d8cf; }
+.card { background: var(--paper); color: var(--ink); border-radius: 16px; padding: 18px; }
+.row { display: flex; gap: 8px; }
+input[type=text], select, textarea {
+  font: inherit; color: var(--ink); background: #fff; border: 1.5px solid var(--line);
+  border-radius: 10px; padding: 11px 12px; min-width: 0; width: 100%;
+}
+textarea { resize: vertical; min-height: 96px; }
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+button { font: inherit; cursor: pointer; border: 0; border-radius: 10px; }
+.btn { background: var(--pine); color: var(--paper); font-weight: 700; padding: 11px 16px; white-space: nowrap; }
+.btn:hover { background: var(--pine-2); }
+.btn.ghost { background: transparent; color: var(--pine); border: 1.5px solid var(--pine); }
+.btn.big { background: var(--berry); width: 100%; padding: 15px; font-size: 1.1rem; }
+.btn.big:hover { background: #ad1f33; }
+.btn:disabled { opacity: .5; cursor: wait; }
+.tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: var(--pine-2); padding: 5px; border-radius: 14px; }
+.tab { background: transparent; color: #c9d8cf; font-weight: 700; padding: 11px 8px; border-radius: 10px; }
+.tab[aria-selected=true] { background: var(--paper); color: var(--ink); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 0; padding: 0; list-style: none; }
+.chip { display: inline-flex; align-items: center; gap: 6px; background: #fff; border: 1.5px solid var(--line); border-radius: 999px; padding: 6px 6px 6px 14px; font-weight: 500; }
+.chip button { background: var(--line); color: var(--ink); width: 26px; height: 26px; border-radius: 50%; line-height: 1; font-size: 1rem; padding: 0; }
+.chip button:hover { background: var(--berry); color: #fff; }
+.count { color: var(--muted); font-size: .9rem; margin: 10px 0 0; }
+.pairs { display: grid; grid-template-columns: 1fr auto 1fr auto; gap: 8px; align-items: center; }
+.pairs .x { color: var(--muted); font-weight: 700; }
+.check { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: .95rem; cursor: pointer; }
+.check input { width: 20px; height: 20px; accent-color: var(--pine); flex: none; }
+.hint { color: var(--muted); font-size: .9rem; margin: 0 0 12px; }
+label.fl { display: block; font-weight: 700; font-size: .9rem; margin: 0 0 6px; }
+.error { color: var(--berry); font-weight: 500; margin: 10px 0 0; min-height: 1.2em; }
+.card .error { margin-top: 12px; }
+.grid { display: grid; gap: 10px; }
+.person { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: #fff; border: 1.5px solid var(--line); border-radius: 12px; padding: 10px 10px 10px 16px; }
+.person b { font-size: 1.05rem; }
+.person.copied { background: #e4ede7; }
+.fallback { margin-top: 8px; }
+.notice { background: #fff6dc; border: 1.5px solid var(--gold); border-radius: 12px; padding: 12px 14px; margin: 0 0 14px; font-size: .92rem; }
+.gift { background: var(--paper); color: var(--ink); border-radius: 20px; padding: 36px 16px; text-align: center; }
+.gift p { margin: 0; color: var(--muted); }
+.gift strong { display: block; font-family: var(--font-display); font-size: 2.6rem; line-height: 1.1; margin-top: 8px; color: var(--berry); overflow-wrap: anywhere; }
+.gift .info { margin-top: 18px; color: var(--ink); font-size: .95rem; white-space: pre-wrap; }
+.toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+.hidden { display: none !important; }
+@media (max-width: 420px) { .pairs { grid-template-columns: 1fr auto 1fr; } .pairs .btn { grid-column: 1 / -1; } }
+@media (prefers-reduced-motion: no-preference) { .gift { animation: pop .25s ease-out; } @keyframes pop { from { transform: scale(.96); opacity: 0; } } }
+</style>
+</head>
+<body>
+<main class="wrap">
+
+  <header>
+    <h1>Sorteador de <span>Amigo Secreto</span></h1>
+    <p class="lead">Quem organiza sorteia e manda um código para cada pessoa. Cada um vê só o próprio resultado, de onde estiver.</p>
+  </header>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" id="tabOrg" role="tab" aria-selected="true" type="button">Organizar</button>
+    <button class="tab" id="tabSee" role="tab" aria-selected="false" type="button">Ver meu resultado</button>
+  </div>
+
+  <!-- ORGANIZAR -->
+  <section id="paneOrg" class="stack">
+
+    <div id="setup" class="stack">
+      <div class="card">
+        <h2>Quem vai participar?</h2>
+        <p class="hint">Estes nomes são exemplos. Apague e coloque os seus.</p>
+        <form id="addForm" class="row" autocomplete="off">
+          <input type="text" id="nameInput" placeholder="Nome do participante" aria-label="Nome do participante" maxlength="30">
+          <button class="btn" type="submit">Adicionar</button>
+        </form>
+        <ul id="people" class="chips" aria-label="Participantes"></ul>
+        <p id="count" class="count"></p>
+      </div>
+
+      <div class="card">
+        <h2>Quem não pode tirar quem?</h2>
+        <p class="hint"><b>Ninguém tira a si mesmo</b>: isso já é automático, não precisa criar regra. Para impedir outras combinações, escolha a pessoa, quem ela não pode tirar e adicione. Repita para quantas regras precisar.</p>
+        <div class="pairs">
+          <select id="selA" aria-label="Quem sorteia"></select>
+          <span class="x">não tira</span>
+          <select id="selB" aria-label="Quem não pode ser tirado"></select>
+          <button class="btn" id="addPair" type="button">Adicionar</button>
+        </div>
+        <label class="check"><input type="checkbox" id="mutual" checked> Valer também no sentido contrário (casais)</label>
+        <ul id="pairList" class="chips" aria-label="Regras"></ul>
+      </div>
+
+      <div class="card">
+        <h2>Informações do grupo</h2>
+        <p class="hint">Opcional. Aparece para cada pessoa junto com o resultado.</p>
+        <label class="fl" for="infoInput">Valor, data da festa, local…</label>
+        <textarea id="infoInput" maxlength="200" placeholder="Ex.: Presente até R$ 50. Troca no dia 20/12, na casa da vó."></textarea>
+      </div>
+
+      <div>
+        <button class="btn big" id="drawBtn" type="button">Sortear</button>
+        <p id="err" class="error" role="alert"></p>
+      </div>
+    </div>
+
+    <div id="results" class="card hidden">
+      <h2>Sorteio feito!</h2>
+      <div class="notice">Mande para cada pessoa a mensagem com o código <b>só para ela</b>. Quem recebe abre o link do sorteio, vai em “Ver meu resultado” e cola o código. Se você também participa, use o seu código do mesmo jeito e não abra os dos outros.</div>
+      <label class="fl" for="linkInput">Link da página (opcional)</label>
+      <input type="text" id="linkInput" placeholder="Cole aqui o link que você vai compartilhar" style="margin-bottom:14px">
+      <div id="list" class="grid"></div>
+      <div class="toolbar">
+        <button class="btn ghost" id="redo" type="button">Sortear de novo</button>
+        <button class="btn ghost" id="back" type="button">Editar lista</button>
+      </div>
+      <p class="hint" style="margin-top:12px">Se sortear de novo, mande os códigos novos para todo mundo. Os antigos continuam mostrando o resultado antigo.</p>
+    </div>
+  </section>
+
+  <!-- VER RESULTADO -->
+  <section id="paneSee" class="stack hidden">
+    <div class="card">
+      <h2>Cole o seu código</h2>
+      <p class="hint">É o código que o organizador mandou para você. Pode colar a mensagem inteira.</p>
+      <label class="fl" for="codeInput">Código</label>
+      <textarea id="codeInput" placeholder="AS-…"></textarea>
+      <div style="margin-top:12px"><button class="btn big" id="seeBtn" type="button">Ver quem eu tirei</button></div>
+      <p id="seeErr" class="error" role="alert"></p>
+    </div>
+    <div id="seeResult" class="hidden">
+      <div class="gift">
+        <p id="seeHello"></p>
+        <strong id="seeTarget"></strong>
+        <div class="info" id="seeInfo"></div>
+      </div>
+      <div class="toolbar"><button class="btn ghost" id="seeHide" type="button" style="color:var(--paper);border-color:var(--paper)">Esconder</button></div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+(function () {
+  var people = ["Ana", "Bruno", "Carla", "Diego", "Elisa"];
+  var pairs = [];
+  var codes = null; // { nome: código }
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  /* ---------- abas ---------- */
+  function showTab(name) {
+    var see = name === "see";
+    $("paneOrg").classList.toggle("hidden", see);
+    $("paneSee").classList.toggle("hidden", !see);
+    $("tabOrg").setAttribute("aria-selected", String(!see));
+    $("tabSee").setAttribute("aria-selected", String(see));
+  }
+  $("tabOrg").onclick = function () { showTab("org"); };
+  $("tabSee").onclick = function () { showTab("see"); };
+  function fromHash() { showTab(location.hash === "#ver" ? "see" : "org"); }
+  window.addEventListener("hashchange", fromHash);
+  fromHash();
+
+  /* ---------- lista e regras ---------- */
+  function renderPeople() {
+    var ul = $("people"); ul.innerHTML = "";
+    people.forEach(function (p) {
+      var li = document.createElement("li"); li.className = "chip";
+      var s = document.createElement("span"); s.textContent = p;
+      var b = document.createElement("button"); b.type = "button"; b.textContent = "×";
+      b.setAttribute("aria-label", "Remover " + p);
+      b.onclick = function () {
+        people = people.filter(function (x) { return x !== p; });
+        pairs = pairs.filter(function (pr) { return pr[0] !== p && pr[1] !== p; });
+        renderAll();
+      };
+      li.appendChild(s); li.appendChild(b); ul.appendChild(li);
+    });
+    $("count").textContent = people.length + (people.length === 1 ? " participante" : " participantes") + (people.length < 3 ? " (mínimo 3)" : "");
+    ["selA", "selB"].forEach(function (id) {
+      var sel = $(id), keep = sel.value; sel.innerHTML = "";
+      people.forEach(function (p) { var o = document.createElement("option"); o.value = p; o.textContent = p; sel.appendChild(o); });
+      if (people.indexOf(keep) >= 0) sel.value = keep;
+    });
+    if (people.length > 1 && $("selA").value === $("selB").value) $("selB").selectedIndex = ($("selA").selectedIndex + 1) % people.length;
+  }
+  function renderPairs() {
+    var ul = $("pairList"); ul.innerHTML = "";
+    pairs.forEach(function (pr, i) {
+      var li = document.createElement("li"); li.className = "chip";
+      var s = document.createElement("span"); s.textContent = pr[2] ? pr[0] + " ↔ " + pr[1] : pr[0] + " não tira " + pr[1];
+      var b = document.createElement("button"); b.type = "button"; b.textContent = "×";
+      b.setAttribute("aria-label", "Remover regra " + pr[0] + " e " + pr[1]);
+      b.onclick = function () { pairs.splice(i, 1); renderPairs(); };
+      li.appendChild(s); li.appendChild(b); ul.appendChild(li);
+    });
+  }
+  function renderAll() { renderPeople(); renderPairs(); $("err").textContent = ""; }
+
+  function forbidden(a, b) {
+    if (a === b) return true;
+    return pairs.some(function (p) { return (p[0] === a && p[1] === b) || (p[2] && p[0] === b && p[1] === a); });
+  }
+  function shuffle(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+  function draw() { // busca com retrocesso
+    var givers = shuffle(people), used = {}, result = {};
+    function place(i) {
+      if (i === givers.length) return true;
+      var g = givers[i], options = shuffle(people);
+      for (var k = 0; k < options.length; k++) {
+        var r = options[k];
+        if (used[r] || forbidden(g, r)) continue;
+        used[r] = true; result[g] = r;
+        if (place(i + 1)) return true;
+        used[r] = false; delete result[g];
+      }
+      return false;
+    }
+    return place(0) ? result : null;
+  }
+
+  /* ---------- criptografia: cada código guarda só o resultado de uma pessoa ---------- */
+  function toB64u(bytes) {
+    var s = ""; for (var i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+    return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  }
+  function fromB64u(str) {
+    str = str.replace(/-/g, "+").replace(/_/g, "/");
+    while (str.length % 4) str += "=";
+    var s = atob(str), out = new Uint8Array(s.length);
+    for (var i = 0; i < s.length; i++) out[i] = s.charCodeAt(i);
+    return out;
+  }
+  async function makeCode(payload) {
+    var key = await crypto.subtle.generateKey({ name: "AES-GCM", length: 128 }, true, ["encrypt"]);
+    var raw = new Uint8Array(await crypto.subtle.exportKey("raw", key));
+    var iv = crypto.getRandomValues(new Uint8Array(12));
+    var data = new TextEncoder().encode(JSON.stringify(payload));
+    var ct = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, key, data));
+    var all = new Uint8Array(raw.length + iv.length + ct.length);
+    all.set(raw, 0); all.set(iv, raw.length); all.set(ct, raw.length + iv.length);
+    return "AS-" + toB64u(all);
+  }
+  async function readCode(code) {
+    var all = fromB64u(code.replace(/^AS-/, ""));
+    var key = await crypto.subtle.importKey("raw", all.slice(0, 16), { name: "AES-GCM" }, false, ["decrypt"]);
+    var pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: all.slice(16, 28) }, key, all.slice(28));
+    return JSON.parse(new TextDecoder().decode(pt));
+  }
+
+  /* ---------- sorteio e envio ---------- */
+  async function runDraw() {
+    var r = draw();
+    if (!r) { $("err").textContent = "Com essas regras não existe sorteio possível. Remova alguma regra e tente de novo."; return false; }
+    var info = $("infoInput").value.trim();
+    var out = {};
+    for (var i = 0; i < people.length; i++) {
+      var p = people[i];
+      out[p] = await makeCode({ g: p, r: r[p], i: info });
+    }
+    codes = out;
+    renderList();
+    return true;
+  }
+
+  function messageFor(name) {
+    var link = $("linkInput").value.trim();
+    return "Oi, " + name + "! Você está no nosso amigo secreto 🎁\n\n" +
+      "Seu código (só seu, não mostre a ninguém):\n" + codes[name] + "\n\n" +
+      "Como ver quem você tirou: abra " + (link ? link : "o link do sorteio") +
+      ", toque em “Ver meu resultado”, cole o código e toque em “Ver quem eu tirei”.";
+  }
+
+  function renderList() {
+    var box = $("list"); box.innerHTML = "";
+    people.forEach(function (p) {
+      var wrap = document.createElement("div");
+      var row = document.createElement("div"); row.className = "person";
+      var n = document.createElement("b"); n.textContent = p;
+      var b = document.createElement("button"); b.type = "button"; b.className = "btn"; b.textContent = "Copiar mensagem";
+      row.appendChild(n); row.appendChild(b); wrap.appendChild(row);
+      b.onclick = function () {
+        var msg = messageFor(p);
+        var old = wrap.querySelector(".fallback"); if (old) old.remove();
+        var done = function () { row.classList.add("copied"); b.textContent = "Copiado ✓"; };
+        var fail = function () {
+          var ta = document.createElement("textarea"); ta.className = "fallback"; ta.readOnly = true; ta.value = msg;
+          wrap.appendChild(ta); ta.focus(); ta.select();
+          b.textContent = "Copie o texto abaixo";
+        };
+        try { navigator.clipboard.writeText(msg).then(done, fail); } catch (e) { fail(); }
+      };
+      box.appendChild(wrap);
+    });
+  }
+
+  $("addForm").onsubmit = function (e) {
+    e.preventDefault();
+    var v = $("nameInput").value.trim();
+    if (!v) return;
+    if (people.some(function (p) { return p.toLowerCase() === v.toLowerCase(); })) {
+      $("err").textContent = "Já existe alguém com o nome “" + v + "”. Use um sobrenome ou apelido para diferenciar."; return;
+    }
+    people.push(v); $("nameInput").value = ""; renderAll(); $("nameInput").focus();
+  };
+  $("addPair").onclick = function () {
+    var a = $("selA").value, b = $("selB").value;
+    if (!a || !b || a === b) { $("err").textContent = "Escolha duas pessoas diferentes."; return; }
+    var mutual = $("mutual").checked;
+    var already = pairs.some(function (p) { return p[0] === a && p[1] === b && (p[2] || !mutual); }) ||
+      (mutual && pairs.some(function (p) { return p[2] && p[0] === b && p[1] === a; }));
+    if (already) { $("err").textContent = "Essa regra já existe."; return; }
+    pairs.push([a, b, mutual]); renderAll();
+  };
+  $("drawBtn").onclick = async function () {
+    if (people.length < 3) { $("err").textContent = "Adicione pelo menos 3 participantes."; return; }
+    $("drawBtn").disabled = true;
+    try {
+      if (await runDraw()) { $("setup").classList.add("hidden"); $("results").classList.remove("hidden"); window.scrollTo(0, 0); }
+    } catch (e) {
+      $("err").textContent = "Não consegui gerar os códigos neste navegador. Abra a página em outro navegador e tente de novo.";
+    }
+    $("drawBtn").disabled = false;
+  };
+  $("redo").onclick = async function () { $("redo").disabled = true; try { await runDraw(); } catch (e) {} $("redo").disabled = false; };
+  $("back").onclick = function () { codes = null; $("results").classList.add("hidden"); $("setup").classList.remove("hidden"); };
+  $("linkInput").oninput = function () { if (codes) renderList(); };
+
+  /* ---------- ver resultado ---------- */
+  $("seeBtn").onclick = async function () {
+    var err = $("seeErr"); err.textContent = "";
+    var m = $("codeInput").value.match(/AS-[A-Za-z0-9_-]+/);
+    if (!m) { err.textContent = "Não achei um código. Ele começa com AS- e vem na mensagem do organizador."; return; }
+    try {
+      var d = await readCode(m[0]);
+      $("seeHello").textContent = "Olá, " + d.g + "! Você tirou";
+      $("seeTarget").textContent = d.r;
+      $("seeInfo").textContent = d.i || "";
+      $("seeResult").classList.remove("hidden");
+      $("codeInput").value = "";
+    } catch (e) {
+      err.textContent = "Esse código não funcionou. Copie a mensagem inteira de novo, sem cortar o final.";
+    }
+  };
+  $("seeHide").onclick = function () {
+    $("seeResult").classList.add("hidden"); $("seeTarget").textContent = ""; $("seeInfo").textContent = "";
+  };
+
+  renderAll();
+})();
+</script>
+</body>
+</html>
